@@ -1,0 +1,43 @@
+<template>
+  <button @click="sign">sign code</button>
+</template>
+<script setup lang="ts">
+import { generateNonce, SiweMessage } from "siwe";
+import { getAccount, getNetwork, signMessage } from "@wagmi/core";
+
+const account = getAccount();
+console.log("account---", account);
+const address = account?.address ?? window.ethereum?._state?.accounts?.[0];
+const { chain } = getNetwork();
+console.log("chain----", chain);
+const chainId = chain?.id;
+const nonce = generateNonce(); // fetch from backend
+console.log("nonce----", nonce);
+console.log("ethereum-----", window.ethereum?._state?.accounts);
+//处理metamask的不同版本可能会出现address取不到值的情况
+
+// 1.fetch from backend
+// 2.生成signature
+// 3.向后端发送message和signature
+// 4.利用message和signature验签
+const sign = async () => {
+  const message = new SiweMessage({
+    domain: window.location.host,
+    address,
+    statement: "Sign in with Ethereum to the app.",
+    uri: window.location.origin,
+    version: "2",
+    chainId,
+    nonce: nonce,
+  });
+  const signature = await signMessage({
+    message: message.prepareMessage(),
+  });
+  // 向后端发送message和signature
+
+  const siweMessage = new SiweMessage(message);
+  const fields = await siweMessage.validate(signature);
+
+  console.log("fields", fields.nonce);
+};
+</script>
